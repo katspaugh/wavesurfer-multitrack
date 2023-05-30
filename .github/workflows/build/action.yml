@@ -1,6 +1,4 @@
-name: 'Build'
-
-description: 'Build the app'
+name: Build
 
 runs:
   using: 'composite'

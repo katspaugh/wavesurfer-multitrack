@@ -1,6 +1,6 @@
 {
   "name": "wavesurfer-multitrack",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "license": "BSD-3-Clause",
   "author": "katspaugh",
   "description": "Multritrack super-plugin for wavesurfer.js",
@@ -13,13 +13,13 @@
   "files": [
     "dist"
   ],
-  "main": "dist/wavesurfer-multitrack.js",
-  "module": "dist/wavesurfer-multitrack.js",
-  "types": "dist/wavesurfer-multitrack.d.ts",
-  "browser": "dist/wavesurfer-multitrack.js",
+  "main": "dist/multitrack.js",
+  "module": "dist/multitrack.js",
+  "types": "dist/multitrack.d.ts",
+  "browser": "dist/multitrack.js",
   "exports": {
     ".": {
-      "import": "./dist/wavesurfer-multitrack.js",
+      "import": "./dist/multitrack.js",
       "require": "./dist/wavesurfer-multitrack.min.js"
     }
   },

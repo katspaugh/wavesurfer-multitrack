@@ -1,0 +1,8 @@
+.DS_Store
+dist
+docs
+node_modules
+yarn-error.log
+public/docs
+cypress/screenshots
+cypress/downloads

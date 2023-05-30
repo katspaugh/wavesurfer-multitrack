@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>wavesurfer.js multitrack</title>
+
+    <style>
+      body {
+        background: #161313;
+        color: #fff;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        font-family: sans-serif;
+      }
+      body a {
+        color: #fff;
+      }
+      main {
+        flex: 1;
+        padding: 2rem 10vw;
+      }
+      header,
+      footer {
+        padding: 1rem 10vw;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #333;
+      }
+      header h1 {
+        margin: 0;
+        font-size: 1.5em;
+        flex: 1;
+      }
+    </style>
+  </head>
+
+  <body>
+    <header>
+      <h1>wavesurfer.js multitrack</h1>
+      <a href="/docs/modules/multitrack.html">Docs</a>
+    </header>
+
+    <main>
+      <label>
+        Zoom: <input type="range" min="10" max="100" value="10" />
+      </label>
+
+      <div style="margin: 1em 0 2em;">
+        <button id="play">Play</button>
+        <button id="forward">Forward 30s</button>
+        <button id="backward">Back 30s</button>
+      </div>
+
+      <div id="container"></div>
+    </main>
+
+    <footer>
+      <a href="https://github.com/katspaugh/wavesurfer-multitrack">GitHub</a>
+    </footer>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "wavesurfer.js/dist/": "/node_modules/wavesurfer.js/dist/",
+          "wavesurfer.js": "/node_modules/wavesurfer.js/dist/wavesurfer.js"
+        }
+      }
+    </script>
+    <script src="/examples/main.js" type="module"></script>
+  </body>
+</html>

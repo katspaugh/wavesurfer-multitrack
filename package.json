@@ -1,6 +1,6 @@
 {
   "name": "wavesurfer-multitrack",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "license": "BSD-3-Clause",
   "author": "katspaugh",
   "description": "Multritrack super-plugin for wavesurfer.js",
@@ -24,7 +24,7 @@
     }
   },
   "scripts": {
-    "build": "NODE_ENV=production webpack",
+    "build": "tsc && NODE_ENV=production webpack",
     "deploy": "yarn build && yarn docs",
     "prepublishOnly": "npm run build",
     "docs": "typedoc src/multitrack.ts --out docs",

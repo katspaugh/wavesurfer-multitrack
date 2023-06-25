@@ -151,3 +151,9 @@ slider.oninput = () => {
 window.onbeforeunload = () => {
   multitrack.destroy()
 }
+
+// Set sinkId
+multitrack.once('canplay', async () => {
+  await multitrack.setSinkId('default')
+  console.log('Set sinkId to default')
+})

@@ -1,6 +1,6 @@
 {
   "name": "wavesurfer-multitrack",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "license": "BSD-3-Clause",
   "author": "katspaugh",
   "description": "Multritrack super-plugin for wavesurfer.js",
@@ -25,12 +25,14 @@
   },
   "scripts": {
     "build": "tsc && NODE_ENV=production webpack",
+    "build:dev": "tsc -w --target ESNext",
     "deploy": "yarn build && yarn docs",
     "prepublishOnly": "npm run build",
     "docs": "typedoc src/multitrack.ts --out docs",
     "lint": "eslint --ext .ts src --fix",
     "prettier": "prettier -w '**/*.{js,ts,css}' --ignore-path .gitignore",
-    "start": "webpack serve"
+    "serve": "webpack serve",
+    "start": "npm run build:dev & npm run serve"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^5.57.0",
@@ -48,6 +50,6 @@
     "webpack-dev-server": "^4.15.0"
   },
   "dependencies": {
-    "wavesurfer.js": "^7.0.0-beta.10"
+    "wavesurfer.js": "^7.0.0-beta.11"
   }
 }

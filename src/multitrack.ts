@@ -9,7 +9,7 @@ import WaveSurfer, { type WaveSurferOptions } from 'wavesurfer.js'
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js'
 import TimelinePlugin, { type TimelinePluginOptions } from 'wavesurfer.js/dist/plugins/timeline.js'
 import EnvelopePlugin, { type EnvelopePluginOptions } from 'wavesurfer.js/dist/plugins/envelope.js'
-import EventEmitter from './event-emitter'
+import EventEmitter from 'wavesurfer.js/dist/event-emitter.js'
 
 export type TrackId = string | number
 
@@ -128,6 +128,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
 
   private initAudio(track: TrackOptions): Promise<HTMLAudioElement> {
     const audio = new Audio(track.url)
+    ;(audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId('default')
 
     return new Promise<typeof audio>((resolve) => {
       if (!audio.src) return resolve(audio)
@@ -485,7 +486,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   }
 
   // See https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/setSinkId
-  public setSinkId(sinkId: string) {
+  public setSinkId(sinkId: string): Promise<void[]> {
     return Promise.all(this.wavesurfers.map((ws) => ws.setSinkId(sinkId)))
   }
 }

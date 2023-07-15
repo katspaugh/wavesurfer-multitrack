@@ -328,7 +328,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       }
 
       // Unmute if cue is reached
-      const newVolume = newTime >= (track.startCue || 0) && newTime < (track.endCue || Infinity) ? 1 : 0
+      const newVolume = newTime >= (track.startCue || 0) && newTime < (track.endCue || Infinity) ? audio.volume : 0
       if (newVolume !== audio.volume) audio.volume = newVolume
     })
   }

@@ -128,8 +128,8 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
 
   private initAudio(track: TrackOptions): Promise<HTMLAudioElement> {
     const audio = new Audio()
-    audio.crossOrigin = "anonymous"
-    audio.src = track.url
+    audio.crossOrigin = 'anonymous'
+    if (track.url) audio.src = track.url
     ;(audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId('default')
 
     return new Promise<typeof audio>((resolve) => {

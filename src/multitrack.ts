@@ -67,13 +67,12 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   private options: MultitrackOptions
   private audios: Array<HTMLAudioElement> = []
   private wavesurfers: Array<WaveSurfer> = []
+  private envelopes: Array<EnvelopePlugin> = []
   private durations: Array<number> = []
   private currentTime = 0
   private maxDuration = 0
   private rendering: ReturnType<typeof initRendering>
-  private isDragging = false
   private frameRequest: number | null = null
-  private timer: ReturnType<typeof setTimeout> | null = null
   private subscriptions: Array<() => void> = []
   private timeline: TimelinePlugin | null = null
 
@@ -108,7 +107,6 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       })
 
       this.rendering.addClickHandler((position) => {
-        if (this.isDragging) return
         this.seekTo(position)
       })
 
@@ -130,6 +128,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     const audio = new Audio()
     audio.crossOrigin = 'anonymous'
     if (track.url) audio.src = track.url
+    if (track.volume !== undefined) audio.volume = track.volume
     ;(audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId('default')
 
     return new Promise<typeof audio>((resolve) => {
@@ -250,19 +249,18 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       } as EnvelopePluginOptions),
     )
 
+    this.envelopes[index] = envelope
+
     this.subscriptions.push(
       envelope.on('volume-change', (volume) => {
-        this.setIsDragging()
         this.emit('volume-change', { id: track.id, volume })
       }),
 
       envelope.on('fade-in-change', (time) => {
-        this.setIsDragging()
         this.emit('fade-in-change', { id: track.id, fadeInEnd: time })
       }),
 
       envelope.on('fade-out-change', (time) => {
-        this.setIsDragging()
         this.emit('fade-out-change', { id: track.id, fadeOutStart: time })
       }),
 
@@ -330,21 +328,12 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       }
 
       // Unmute if cue is reached
-      const newVolume = newTime >= (track.startCue || 0) && newTime < (track.endCue || Infinity) ? audio.volume : 0
-      if (newVolume !== audio.volume) audio.volume = newVolume
+      const isMuted = newTime < (track.startCue || 0) || newTime > (track.endCue || Infinity)
+      if (isMuted != audio.muted) audio.muted = isMuted
     })
   }
 
-  private setIsDragging() {
-    // Prevent click events when dragging
-    this.isDragging = true
-    if (this.timer) clearTimeout(this.timer)
-    this.timer = setTimeout(() => (this.isDragging = false), 300)
-  }
-
   private onDrag(index: number, delta: number) {
-    this.setIsDragging()
-
     const track = this.tracks[index]
     if (!track.draggable) return
 
@@ -490,6 +479,10 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   // See https://developer.mozilla.org/en-US/docs/Web/API/HTMLMediaElement/setSinkId
   public setSinkId(sinkId: string): Promise<void[]> {
     return Promise.all(this.wavesurfers.map((ws) => ws.setSinkId(sinkId)))
+  }
+
+  public setTrackVolume(index: number, volume: number) {
+    this.envelopes[index]?.setVolume(volume)
   }
 }
 

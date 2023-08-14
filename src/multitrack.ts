@@ -17,6 +17,7 @@ export type TrackOptions = {
   id: TrackId
   url?: string
   peaks?: WaveSurferOptions['peaks']
+  envelope?: boolean
   draggable?: boolean
   startPosition: number
   startCue?: number
@@ -237,45 +238,47 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       }),
     )
 
-    // Envelope
-    const envelope = ws.registerPlugin(
-      EnvelopePlugin.create({
-        ...this.options.envelopeOptions,
-        fadeInStart: track.startCue,
-        fadeInEnd: track.fadeInEnd,
-        fadeOutStart: track.fadeOutStart,
-        fadeOutEnd: track.endCue,
-        volume: track.volume,
-      } as EnvelopePluginOptions),
-    )
-
-    this.envelopes[index] = envelope
-
-    this.subscriptions.push(
-      envelope.on('volume-change', (volume) => {
-        this.emit('volume-change', { id: track.id, volume })
-      }),
-
-      envelope.on('fade-in-change', (time) => {
-        this.emit('fade-in-change', { id: track.id, fadeInEnd: time })
-      }),
-
-      envelope.on('fade-out-change', (time) => {
-        this.emit('fade-out-change', { id: track.id, fadeOutStart: time })
-      }),
-
-      this.on('start-cue-change', ({ id, startCue }) => {
-        if (id === track.id) {
-          envelope.setStartTime(startCue)
-        }
-      }),
-
-      this.on('end-cue-change', ({ id, endCue }) => {
-        if (id === track.id) {
-          envelope.setEndTime(endCue)
-        }
-      }),
-    )
+    if (track.envelope) {
+      // Envelope
+      const envelope = ws.registerPlugin(
+        EnvelopePlugin.create({
+          ...this.options.envelopeOptions,
+          fadeInStart: track.startCue,
+          fadeInEnd: track.fadeInEnd,
+          fadeOutStart: track.fadeOutStart,
+          fadeOutEnd: track.endCue,
+          volume: track.volume,
+        } as EnvelopePluginOptions),
+      )
+  
+      this.envelopes[index] = envelope
+  
+      this.subscriptions.push(
+        envelope.on('volume-change', (volume) => {
+          this.emit('volume-change', { id: track.id, volume })
+        }),
+  
+        envelope.on('fade-in-change', (time) => {
+          this.emit('fade-in-change', { id: track.id, fadeInEnd: time })
+        }),
+  
+        envelope.on('fade-out-change', (time) => {
+          this.emit('fade-out-change', { id: track.id, fadeOutStart: time })
+        }),
+  
+        this.on('start-cue-change', ({ id, startCue }) => {
+          if (id === track.id) {
+            envelope.setStartTime(startCue)
+          }
+        }),
+  
+        this.on('end-cue-change', ({ id, endCue }) => {
+          if (id === track.id) {
+            envelope.setEndTime(endCue)
+          }
+        }),
+      )
+    }
 
     return ws
   }

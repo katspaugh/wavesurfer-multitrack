@@ -130,7 +130,10 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     audio.crossOrigin = 'anonymous'
     if (track.url) audio.src = track.url
     if (track.volume !== undefined) audio.volume = track.volume
-    ;(audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId('default')
+
+      if ('setSinkId' in audio && typeof (audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId === 'function') {
+          ;(audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId('default')
+      }
 
     return new Promise<typeof audio>((resolve) => {
       if (!audio.src) return resolve(audio)

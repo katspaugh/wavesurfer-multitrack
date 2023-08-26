@@ -13,6 +13,11 @@ import EventEmitter from 'wavesurfer.js/dist/event-emitter.js'
 
 export type TrackId = string | number
 
+type SingleTrackOptions = Omit<
+  WaveSurferOptions,
+  'container' | 'minPxPerSec' | 'media' | 'peaks' | 'cursorColor' | 'cursorWidth' | 'interact' | 'hideScrollbar'
+>
+
 export type TrackOptions = {
   id: TrackId
   url?: string
@@ -35,7 +40,7 @@ export type TrackOptions = {
     label?: string
     color?: string
   }
-  options?: WaveSurferOptions
+  options?: SingleTrackOptions
 }
 
 export type MultitrackOptions = {

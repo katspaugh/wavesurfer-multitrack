@@ -13,6 +13,11 @@ import EventEmitter from 'wavesurfer.js/dist/event-emitter.js'
 
 export type TrackId = string | number
 
+type SingleTrackOptions = Omit<
+  WaveSurferOptions,
+  'container' | 'minPxPerSec' | 'media' | 'peaks' | 'cursorColor' | 'cursorWidth' | 'interact' | 'hideScrollbar'
+>
+
 export type TrackOptions = {
   id: TrackId
   url?: string
@@ -35,7 +40,7 @@ export type TrackOptions = {
     label?: string
     color?: string
   }
-  options?: WaveSurferOptions
+  options?: SingleTrackOptions
 }
 
 export type MultitrackOptions = {
@@ -131,9 +136,12 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     if (track.url) audio.src = track.url
     if (track.volume !== undefined) audio.volume = track.volume
 
-      if ('setSinkId' in audio && typeof (audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId === 'function') {
-          ;(audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId('default')
-      }
+    if (
+      'setSinkId' in audio &&
+      typeof (audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId === 'function'
+    ) {
+      ;(audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId('default')
+    }
 
     return new Promise<typeof audio>((resolve) => {
       if (!audio.src) return resolve(audio)
@@ -253,28 +261,28 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
           volume: track.volume,
         } as EnvelopePluginOptions),
       )
-  
+
       this.envelopes[index] = envelope
-  
+
       this.subscriptions.push(
         envelope.on('volume-change', (volume) => {
           this.emit('volume-change', { id: track.id, volume })
         }),
-  
+
         envelope.on('fade-in-change', (time) => {
           this.emit('fade-in-change', { id: track.id, fadeInEnd: time })
         }),
-  
+
         envelope.on('fade-out-change', (time) => {
           this.emit('fade-out-change', { id: track.id, fadeOutStart: time })
         }),
-  
+
         this.on('start-cue-change', ({ id, startCue }) => {
           if (id === track.id) {
             envelope.setStartTime(startCue)
           }
         }),
-  
+
         this.on('end-cue-change', ({ id, endCue }) => {
           if (id === track.id) {
             envelope.setEndTime(endCue)

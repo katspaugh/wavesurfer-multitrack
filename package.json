@@ -50,6 +50,6 @@
     "webpack-dev-server": "^4.15.0"
   },
   "dependencies": {
-    "wavesurfer.js": "^7.1.5"
+    "wavesurfer.js": "^7.2.0-beta.3"
   }
 }

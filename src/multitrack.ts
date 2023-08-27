@@ -199,7 +199,6 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
           startCueRegion.element.firstElementChild?.remove()
           endCueRegion.element.lastChild?.remove()
 
-          // Prevent clicks when dragging
           // Update the start and end cues on resize
           this.subscriptions.push(
             startCueRegion.on('update-end', () => {
@@ -680,13 +679,14 @@ function initDragging(container: HTMLElement, onDrag: (delta: number) => void, r
 
   // Dragging tracks to set position
   let dragStart: number | null = null
+  let isDragging = false
 
   container.addEventListener('contextmenu', (e) => {
     rightButtonDrag && e.preventDefault()
   })
 
   // Drag start
-  container.addEventListener('mousedown', (e) => {
+  container.addEventListener('pointerdown', (e) => {
     if (rightButtonDrag && e.button !== 2) return
     const rect = wrapper.getBoundingClientRect()
     dragStart = e.clientX - rect.left
@@ -699,6 +699,8 @@ function initDragging(container: HTMLElement, onDrag: (delta: number) => void, r
       e.stopPropagation()
       dragStart = null
       container.style.cursor = ''
+
+      setTimeout(() => (isDragging = false), 100)
     }
   }
 
@@ -709,18 +711,31 @@ function initDragging(container: HTMLElement, onDrag: (delta: number) => void, r
     const x = e.clientX - rect.left
     const diff = x - dragStart
     if (diff > 1 || diff < -1) {
+      isDragging = true
       dragStart = x
       onDrag(diff / wrapper.offsetWidth)
     }
   }
 
-  document.body.addEventListener('mouseup', onMouseUp)
-  document.body.addEventListener('mousemove', onMouseMove)
+  const onClick = (e: MouseEvent) => {
+    if (isDragging) {
+      e.preventDefault()
+      e.stopPropagation()
+      e.stopImmediatePropagation()
+    }
+  }
+
+  document.addEventListener('pointerup', onMouseUp)
+  document.addEventListener('pointerleave', onMouseUp)
+  document.addEventListener('pointermove', onMouseMove)
+  wrapper.addEventListener('click', onClick)
 
   return {
     destroy: () => {
-      document.body.removeEventListener('mouseup', onMouseUp)
-      document.body.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('pointerup', onMouseUp)
+      document.removeEventListener('pointerleave', onMouseUp)
+      document.removeEventListener('pointermove', onMouseMove)
+      wrapper.removeEventListener('click', onClick)
     },
   }
 }

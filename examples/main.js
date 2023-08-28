@@ -174,3 +174,14 @@ multitrack.once('canplay', async () => {
   await multitrack.setSinkId('default')
   console.log('Set sinkId to default')
 })
+
+// Set new points for 3rd track
+setTimeout(() => {
+  const track = 2
+
+  // Get existing points
+  const points = multitrack.getEnvelopePoints(track)
+
+  // Add a new point
+  multitrack.setEnvelopePoints(track, [...points, { time: 19, volume: 0.5 }])
+}, 2000)

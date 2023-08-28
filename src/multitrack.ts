@@ -537,6 +537,14 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   public setTrackVolume(index: number, volume: number) {
     this.wavesurfers[index]?.setVolume(volume)
   }
+
+  public getEnvelopePoints(trackIndex: number): EnvelopePoint[] | undefined {
+    return this.envelopes[trackIndex]?.getPoints()
+  }
+
+  public setEnvelopePoints(trackIndex: number, points: EnvelopePoint[]) {
+    this.envelopes[trackIndex]?.setPoints(points)
+  }
 }
 
 function initRendering(tracks: MultitrackTracks, options: MultitrackOptions) {

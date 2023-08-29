@@ -15,7 +15,7 @@ export type TrackId = string | number
 
 type SingleTrackOptions = Omit<
   WaveSurferOptions,
-  'container' | 'minPxPerSec' | 'media' | 'peaks' | 'cursorColor' | 'cursorWidth' | 'interact' | 'hideScrollbar'
+  'container' | 'minPxPerSec' | 'peaks' | 'cursorColor' | 'cursorWidth' | 'interact' | 'hideScrollbar'
 >
 
 export type TrackOptions = {
@@ -92,7 +92,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     this.tracks = tracks.map((track) => ({
       ...track,
       startPosition: track.startPosition || 0,
-      peaks: track.peaks || (track.url ? undefined : [new Float32Array()]),
+      peaks: track.peaks || (track.url || track.options?.media ? undefined : [new Float32Array()]),
     }))
     this.options = options
 
@@ -131,9 +131,15 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   }
 
   private initAudio(track: TrackOptions): Promise<HTMLAudioElement> {
-    const audio = new Audio()
+    let audio = new Audio()
     audio.crossOrigin = 'anonymous'
-    if (track.url) audio.src = track.url
+
+    if (track.url) {
+      audio.src = track.url
+    } else if (track.options?.media) {
+      audio = track.options?.media
+    }
+
     if (track.volume !== undefined) audio.volume = track.volume
 
     if (
@@ -372,7 +378,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
 
     this.tracks.forEach((track, index) => {
       if (
-        track.url &&
+        (track.url || track.options?.media) &&
         this.currentTime >= track.startPosition &&
         this.currentTime < track.startPosition + this.durations[index]
       ) {
@@ -532,12 +538,12 @@ function initRendering(tracks: MultitrackTracks, options: MultitrackOptions) {
       wrapper.appendChild(borderDiv)
     }
 
-    if (options.trackBackground && track.url) {
+    if (options.trackBackground && (track.url || track.options?.media)) {
       container.style.background = options.trackBackground
     }
 
     // No audio on this track, so make it droppable
-    if (!track.url) {
+    if (!(track.url || track.options?.media)) {
       const dropArea = document.createElement('div')
       dropArea.setAttribute(
         'style',
@@ -622,7 +628,7 @@ function initRendering(tracks: MultitrackTracks, options: MultitrackOptions) {
     // Do something on drop
     addDropHandler: (onDrop: (trackId: TrackId) => void) => {
       tracks.forEach((track, index) => {
-        if (!track.url) {
+        if (!(track.url || track.options?.media)) {
           const droppable = containers[index].querySelector('div')
           droppable?.addEventListener('drop', (e) => {
             e.preventDefault()

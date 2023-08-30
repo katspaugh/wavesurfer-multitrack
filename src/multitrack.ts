@@ -8,7 +8,7 @@
 import WaveSurfer, { type WaveSurferOptions } from 'wavesurfer.js'
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js'
 import TimelinePlugin, { type TimelinePluginOptions } from 'wavesurfer.js/dist/plugins/timeline.js'
-import EnvelopePlugin, { type EnvelopePluginOptions } from 'wavesurfer.js/dist/plugins/envelope.js'
+import EnvelopePlugin, { type EnvelopePoint, type EnvelopePluginOptions } from 'wavesurfer.js/dist/plugins/envelope.js'
 import EventEmitter from 'wavesurfer.js/dist/event-emitter.js'
 
 export type TrackId = string | number
@@ -22,7 +22,7 @@ export type TrackOptions = {
   id: TrackId
   url?: string
   peaks?: WaveSurferOptions['peaks']
-  envelope?: boolean
+  envelope?: boolean | EnvelopePoint[]
   draggable?: boolean
   startPosition: number
   startCue?: number
@@ -51,6 +51,7 @@ export type MultitrackOptions = {
   trackBackground?: string
   trackBorderColor?: string
   rightButtonDrag?: boolean
+  dragBounds?: boolean
   envelopeOptions?: EnvelopePluginOptions
 }
 
@@ -61,6 +62,7 @@ export type MultitrackEvents = {
   'end-cue-change': [{ id: TrackId; endCue: number }]
   'fade-in-change': [{ id: TrackId; fadeInEnd: number }]
   'fade-out-change': [{ id: TrackId; fadeOutStart: number }]
+  'envelope-points-change': [{ id: TrackId; points: EnvelopePoint[] }]
   'volume-change': [{ id: TrackId; volume: number }]
   'intro-end-change': [{ id: TrackId; endTime: number }]
   drop: [{ id: TrackId }]
@@ -198,7 +200,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
           })
           const endCueRegion = wsRegions.addRegion({
             start: endCue,
-            end: endCue + this.durations[index],
+            end: this.durations[index],
             color: 'rgba(0, 0, 0, 0.7)',
             drag: false,
           })
@@ -207,7 +209,6 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
           startCueRegion.element.firstElementChild?.remove()
           endCueRegion.element.lastChild?.remove()
 
-          // Prevent clicks when dragging
           // Update the start and end cues on resize
           this.subscriptions.push(
             startCueRegion.on('update-end', () => {
@@ -264,38 +265,74 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       const envelope = ws.registerPlugin(
         EnvelopePlugin.create({
           ...this.options.envelopeOptions,
-          fadeInStart: track.startCue,
-          fadeInEnd: track.fadeInEnd,
-          fadeOutStart: track.fadeOutStart,
-          fadeOutEnd: track.endCue,
           volume: track.volume,
-        } as EnvelopePluginOptions),
+        }),
       )
 
+      if (Array.isArray(track.envelope)) {
+        envelope.setPoints(track.envelope)
+      }
+
+      if (track.fadeInEnd) {
+        if (track.startCue) {
+          envelope.addPoint({ time: track.startCue || 0, volume: 0, id: 'startCue' })
+        }
+        envelope.addPoint({ time: track.fadeInEnd || 0, volume: track.volume ?? 1, id: 'fadeInEnd' })
+      }
+
+      if (track.fadeOutStart) {
+        envelope.addPoint({ time: track.fadeOutStart, volume: track.volume ?? 1, id: 'fadeOutStart' })
+        if (track.endCue) {
+          envelope.addPoint({ time: track.endCue, volume: 0, id: 'endCue' })
+        }
+      }
+
       this.envelopes[index] = envelope
+
+      const setPointTimeById = (id: string, time: number) => {
+        const points = envelope.getPoints()
+        const newPoints = points.map((point) => {
+          if (point.id === id) {
+            return { ...point, time }
+          }
+          return point
+        })
+        envelope.setPoints(newPoints)
+      }
+
+      let prevFadeInEnd = track.fadeInEnd
+      let prevFadeOutStart = track.fadeOutStart
 
       this.subscriptions.push(
         envelope.on('volume-change', (volume) => {
           this.emit('volume-change', { id: track.id, volume })
         }),
 
-        envelope.on('fade-in-change', (time) => {
-          this.emit('fade-in-change', { id: track.id, fadeInEnd: time })
-        }),
+        envelope.on('points-change', (points) => {
+          const fadeIn = points.find((point) => point.id === 'fadeInEnd')
+          if (fadeIn && fadeIn.time !== prevFadeInEnd) {
+            this.emit('fade-in-change', { id: track.id, fadeInEnd: fadeIn.time })
+            prevFadeInEnd = fadeIn.time
+          }
 
-        envelope.on('fade-out-change', (time) => {
-          this.emit('fade-out-change', { id: track.id, fadeOutStart: time })
+          const fadeOut = points.find((point) => point.id === 'fadeOutStart')
+          if (fadeOut && fadeOut.time !== prevFadeOutStart) {
+            this.emit('fade-out-change', { id: track.id, fadeOutStart: fadeOut.time })
+            prevFadeOutStart = fadeOut.time
+          }
+
+          this.emit('envelope-points-change', { id: track.id, points })
         }),
 
         this.on('start-cue-change', ({ id, startCue }) => {
           if (id === track.id) {
-            envelope.setStartTime(startCue)
+            setPointTimeById('startCue', startCue)
           }
         }),
 
         this.on('end-cue-change', ({ id, endCue }) => {
           if (id === track.id) {
-            envelope.setEndTime(endCue)
+            setPointTimeById('endCue', endCue)
           }
         }),
       )
@@ -366,6 +403,8 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     const mainTrack = this.tracks[mainIndex]
     const minStart = (mainTrack ? mainTrack.startPosition : 0) - this.durations[index]
     const maxStart = mainTrack ? mainTrack.startPosition + this.durations[mainIndex] : this.maxDuration
+
+    if (this.options.dragBounds && newStartPosition < 0) return
 
     if (newStartPosition >= minStart && newStartPosition <= maxStart) {
       track.startPosition = newStartPosition
@@ -506,7 +545,15 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   }
 
   public setTrackVolume(index: number, volume: number) {
-    this.envelopes[index]?.setVolume(volume)
+    this.wavesurfers[index]?.setVolume(volume)
+  }
+
+  public getEnvelopePoints(trackIndex: number): EnvelopePoint[] | undefined {
+    return this.envelopes[trackIndex]?.getPoints()
+  }
+
+  public setEnvelopePoints(trackIndex: number, points: EnvelopePoint[]) {
+    this.envelopes[trackIndex]?.setPoints(points)
   }
 }
 
@@ -650,13 +697,14 @@ function initDragging(container: HTMLElement, onDrag: (delta: number) => void, r
 
   // Dragging tracks to set position
   let dragStart: number | null = null
+  let isDragging = false
 
   container.addEventListener('contextmenu', (e) => {
     rightButtonDrag && e.preventDefault()
   })
 
   // Drag start
-  container.addEventListener('mousedown', (e) => {
+  container.addEventListener('pointerdown', (e) => {
     if (rightButtonDrag && e.button !== 2) return
     const rect = wrapper.getBoundingClientRect()
     dragStart = e.clientX - rect.left
@@ -669,6 +717,8 @@ function initDragging(container: HTMLElement, onDrag: (delta: number) => void, r
       e.stopPropagation()
       dragStart = null
       container.style.cursor = ''
+
+      setTimeout(() => (isDragging = false), 100)
     }
   }
 
@@ -679,18 +729,31 @@ function initDragging(container: HTMLElement, onDrag: (delta: number) => void, r
     const x = e.clientX - rect.left
     const diff = x - dragStart
     if (diff > 1 || diff < -1) {
+      isDragging = true
       dragStart = x
       onDrag(diff / wrapper.offsetWidth)
     }
   }
 
-  document.body.addEventListener('mouseup', onMouseUp)
-  document.body.addEventListener('mousemove', onMouseMove)
+  const onClick = (e: MouseEvent) => {
+    if (isDragging) {
+      e.preventDefault()
+      e.stopPropagation()
+      e.stopImmediatePropagation()
+    }
+  }
+
+  document.addEventListener('pointerup', onMouseUp)
+  document.addEventListener('pointerleave', onMouseUp)
+  document.addEventListener('pointermove', onMouseMove)
+  wrapper.addEventListener('click', onClick)
 
   return {
     destroy: () => {
-      document.body.removeEventListener('mouseup', onMouseUp)
-      document.body.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('pointerup', onMouseUp)
+      document.removeEventListener('pointerleave', onMouseUp)
+      document.removeEventListener('pointermove', onMouseMove)
+      wrapper.removeEventListener('click', onClick)
     },
   }
 }

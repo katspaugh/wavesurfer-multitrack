@@ -131,13 +131,17 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   }
 
   private initAudio(track: TrackOptions): Promise<HTMLAudioElement> {
-    let audio = new Audio()
-    audio.crossOrigin = 'anonymous'
+    let audio: HTMLAudioElement
 
     if (track.url) {
+      audio = new Audio()
+      audio.crossOrigin = 'anonymous'
       audio.src = track.url
     } else if (track.options?.media) {
-      audio = track.options?.media
+      audio = track.options.media
+    } else {
+      audio = new Audio()
+      audio.crossOrigin = 'anonymous'
     }
 
     if (track.volume !== undefined) audio.volume = track.volume

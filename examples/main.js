@@ -14,10 +14,13 @@ const multitrack = Multitrack.create(
       draggable: false,
       startPosition: 14, // start time relative to the entire multitrack
       url: '/examples/audio/librivox.mp3',
-      fadeInEnd: 5,
-      fadeOutStart: 250,
-      envelope: true,
-      volume: 1,
+      envelope: [
+        { time: 2, volume: 0.5 },
+        { time: 10, volume: 0.8 },
+        { time: 255, volume: 0.8 },
+        { time: 264, volume: 0 },
+      ],
+      volume: 0.95,
       options: {
         waveColor: 'hsl(46, 87%, 49%)',
         progressColor: 'hsl(46, 87%, 20%)',
@@ -58,11 +61,8 @@ const multitrack = Multitrack.create(
       startCue: 2.1,
       endCue: 20,
       fadeInEnd: 8,
-      fadeOutStart: 18,
-      envelope: [
-        { time: 11.2, volume: 0.5 },
-        { time: 13.5, volume: 0.8 },
-      ],
+      fadeOutStart: 14,
+      envelope: true,
       volume: 0.8,
       options: {
         waveColor: 'hsl(161, 87%, 49%)',
@@ -83,7 +83,7 @@ const multitrack = Multitrack.create(
     envelopeOptions: {
       lineColor: 'rgba(255, 0, 0, 0.7)',
       lineWidth: 4,
-      dragPointSize: 8,
+      dragPointSize: window.innerWidth < 600 ? 20 : 10,
       dragPointFill: 'rgba(255, 255, 255, 0.8)',
       dragPointStroke: 'rgba(255, 255, 255, 0.3)',
     },
@@ -174,14 +174,3 @@ multitrack.once('canplay', async () => {
   await multitrack.setSinkId('default')
   console.log('Set sinkId to default')
 })
-
-// Set new points for 3rd track
-setTimeout(() => {
-  const track = 2
-
-  // Get existing points
-  const points = multitrack.getEnvelopePoints(track)
-
-  // Add a new point
-  multitrack.setEnvelopePoints(track, [...points, { time: 19, volume: 0.5 }])
-}, 2000)

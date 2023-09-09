@@ -1,6 +1,6 @@
 {
   "name": "wavesurfer-multitrack",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "BSD-3-Clause",
   "author": "katspaugh",
   "description": "Multritrack super-plugin for wavesurfer.js",
@@ -51,6 +51,6 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "wavesurfer.js": "^7.2.1"
+    "wavesurfer.js": "^7.2.4"
   }
 }

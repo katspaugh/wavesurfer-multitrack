@@ -335,6 +335,10 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
             setPointTimeById('endCue', endCue)
           }
         }),
+
+        ws.on('decode', () => {
+          envelope.setVolume(track.volume ?? 1)
+        }),
       )
     }
 
@@ -545,7 +549,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   }
 
   public setTrackVolume(index: number, volume: number) {
-    this.wavesurfers[index]?.setVolume(volume)
+    ;(this.envelopes[index] || this.wavesurfers[index])?.setVolume(volume)
   }
 
   public getEnvelopePoints(trackIndex: number): EnvelopePoint[] | undefined {

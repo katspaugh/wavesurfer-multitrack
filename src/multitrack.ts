@@ -83,6 +83,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   private frameRequest: number | null = null
   private subscriptions: Array<() => void> = []
   private timeline: TimelinePlugin | null = null
+  private audioContext: AudioContext
 
   static create(tracks: MultitrackTracks, options: MultitrackOptions): MultiTrack {
     return new MultiTrack(tracks, options)
@@ -90,6 +91,8 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
 
   constructor(tracks: MultitrackTracks, options: MultitrackOptions) {
     super()
+
+    this.audioContext = new AudioContext()
 
     this.tracks = tracks.map((track) => ({
       ...track,
@@ -137,6 +140,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
 
     if (track.url) {
       audio = new Audio()
+      audio.preload = 'auto'
       audio.crossOrigin = 'anonymous'
       audio.src = track.url
     } else if (track.options?.media) {
@@ -266,6 +270,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
         EnvelopePlugin.create({
           ...this.options.envelopeOptions,
           volume: track.volume,
+          audioContext: this.audioContext,
         }),
       )
 

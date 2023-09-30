@@ -501,6 +501,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     this.wavesurfers.forEach((ws, index) => this.tracks[index].url && ws.zoom(pxPerSec))
     this.rendering.setMainWidth(this.durations, this.maxDuration)
     this.rendering.setContainerOffsets()
+    this.initTimeline()
   }
 
   public addTrack(track: TrackOptions) {

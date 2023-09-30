@@ -22,11 +22,19 @@ class WebAudioPlayer {
     this.gainNode.connect(this.audioContext.destination)
   }
 
-  addEventListener(event: string, listener: () => void) {
+  addEventListener(event: string, listener: () => void, options?: { once?: boolean }) {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, new Set())
     }
     this.listeners.get(event)?.add(listener)
+
+    if (options?.once) {
+      const onOnce = () => {
+        this.removeEventListener(event, onOnce)
+        this.removeEventListener(event, listener)
+      }
+      this.addEventListener(event, onOnce)
+    }
   }
 
   removeEventListener(event: string, listener: () => void) {

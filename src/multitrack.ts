@@ -10,6 +10,7 @@ import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js'
 import TimelinePlugin, { type TimelinePluginOptions } from 'wavesurfer.js/dist/plugins/timeline.js'
 import EnvelopePlugin, { type EnvelopePoint, type EnvelopePluginOptions } from 'wavesurfer.js/dist/plugins/envelope.js'
 import EventEmitter from 'wavesurfer.js/dist/event-emitter.js'
+import WebAudioPlayer from './webaudio.js'
 
 export type TrackId = string | number
 
@@ -73,7 +74,7 @@ export type MultitrackTracks = Array<TrackOptions>
 class MultiTrack extends EventEmitter<MultitrackEvents> {
   private tracks: MultitrackTracks
   private options: MultitrackOptions
-  private audios: Array<HTMLAudioElement> = []
+  private audios: Array<HTMLAudioElement | WebAudioPlayer> = []
   private wavesurfers: Array<WaveSurfer> = []
   private envelopes: Array<EnvelopePlugin> = []
   private durations: Array<number> = []
@@ -83,7 +84,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   private frameRequest: number | null = null
   private subscriptions: Array<() => void> = []
   private timeline: TimelinePlugin | null = null
-  private audioContext: AudioContext
+  private audioContext: AudioContext | null = null
 
   static create(tracks: MultitrackTracks, options: MultitrackOptions): MultiTrack {
     return new MultiTrack(tracks, options)
@@ -92,7 +93,8 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   constructor(tracks: MultitrackTracks, options: MultitrackOptions) {
     super()
 
-    this.audioContext = new AudioContext()
+    // Use Web Audio on iOS, otherwise audio will be choppy
+    this.audioContext = /iPhone|iPad/.test(navigator.userAgent) ? new AudioContext() : null
 
     this.tracks = tracks.map((track) => ({
       ...track,
@@ -135,29 +137,16 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     this.rendering.setMainWidth(durations, this.maxDuration)
   }
 
-  private initAudio(track: TrackOptions): Promise<HTMLAudioElement> {
-    let audio: HTMLAudioElement
+  private initAudio(track: TrackOptions): Promise<HTMLAudioElement | WebAudioPlayer> {
+    const audio = track.options?.media || (this.audioContext ? new WebAudioPlayer(this.audioContext) : new Audio())
+
+    audio.crossOrigin = 'anonymous'
 
     if (track.url) {
-      audio = new Audio()
-      audio.preload = 'auto'
-      audio.crossOrigin = 'anonymous'
       audio.src = track.url
-    } else if (track.options?.media) {
-      audio = track.options.media
-    } else {
-      audio = new Audio()
-      audio.crossOrigin = 'anonymous'
     }
 
     if (track.volume !== undefined) audio.volume = track.volume
-
-    if (
-      'setSinkId' in audio &&
-      typeof (audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId === 'function'
-    ) {
-      ;(audio as HTMLAudioElement & { setSinkId: (id: string) => Promise<void> }).setSinkId('default')
-    }
 
     return new Promise<typeof audio>((resolve) => {
       if (!audio.src) return resolve(audio)
@@ -179,8 +168,12 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       ...track.options,
       container,
       minPxPerSec: 0,
-      media: this.audios[index],
-      peaks: track.peaks,
+      media: this.audios[index] as HTMLMediaElement,
+      peaks:
+        track.peaks ||
+        (this.audios[index] instanceof WebAudioPlayer
+          ? (this.audios[index] as WebAudioPlayer).getChannelData()
+          : undefined),
       cursorColor: 'transparent',
       cursorWidth: 0,
       interact: false,
@@ -270,7 +263,6 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
         EnvelopePlugin.create({
           ...this.options.envelopeOptions,
           volume: track.volume,
-          audioContext: this.audioContext,
         }),
       )
 
@@ -466,6 +458,10 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   }
 
   public play() {
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      this.audioContext.resume()
+    }
+
     this.startSync()
 
     const indexes = this.findCurrentTracks()

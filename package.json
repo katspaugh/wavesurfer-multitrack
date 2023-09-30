@@ -4,7 +4,7 @@
   "license": "BSD-3-Clause",
   "author": "katspaugh",
   "description": "Multritrack super-plugin for wavesurfer.js",
-  "homepage": "https://wavesurfer-js.org/examples#multitrack.js",
+  "homepage": "https://wavesurfer.xyz/examples/?multitrack.js",
   "keywords": [
     "wavesurfer",
     "multi-track"

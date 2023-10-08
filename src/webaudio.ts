@@ -10,6 +10,7 @@ class WebAudioPlayer {
   private playStartTime = 0
   private playedDuration = 0
   private _src = ''
+  private _duration = 0
   private _muted = false
   private buffer: AudioBuffer | null = null
   public paused = true
@@ -59,6 +60,7 @@ class WebAudioPlayer {
       .then((arrayBuffer) => this.audioContext.decodeAudioData(arrayBuffer))
       .then((audioBuffer) => {
         this.buffer = audioBuffer
+        this._duration = audioBuffer.duration
 
         this.emitEvent('loadedmetadata')
         this.emitEvent('canplay')
@@ -133,7 +135,10 @@ class WebAudioPlayer {
   }
 
   get duration() {
-    return this.buffer?.duration ?? 0
+    return this._duration
+  }
+  set duration(value: number) {
+    this._duration = value
   }
 
   get volume() {

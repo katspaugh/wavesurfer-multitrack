@@ -71,6 +71,8 @@ export type MultitrackEvents = {
 
 export type MultitrackTracks = Array<TrackOptions>
 
+const PLACEHOLDER_TRACK = 'placeholder'
+
 class MultiTrack extends EventEmitter<MultitrackEvents> {
   private tracks: MultitrackTracks
   private options: MultitrackOptions
@@ -84,7 +86,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   private frameRequest: number | null = null
   private subscriptions: Array<() => void> = []
   private timeline: TimelinePlugin | null = null
-  private audioContext: AudioContext | null = null
+  private audioContext: AudioContext
 
   static create(tracks: MultitrackTracks, options: MultitrackOptions): MultiTrack {
     return new MultiTrack(tracks, options)
@@ -93,10 +95,17 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   constructor(tracks: MultitrackTracks, options: MultitrackOptions) {
     super()
 
-    // Use Web Audio on iOS, otherwise audio will be choppy
-    this.audioContext = /iPhone|iPad/.test(navigator.userAgent) ? new AudioContext() : null
+    this.audioContext = new AudioContext()
 
-    this.tracks = tracks.map((track) => ({
+    const longPlaceholderTrack = {
+      id: PLACEHOLDER_TRACK,
+      url: 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA',
+      peaks: [[0]],
+      startPosition: 0,
+      options: { height: 0 },
+    }
+
+    this.tracks = tracks.concat(longPlaceholderTrack).map((track) => ({
       ...track,
       startPosition: track.startPosition || 0,
       peaks: track.peaks || (track.url || track.options?.media ? undefined : [new Float32Array()]),
@@ -115,8 +124,10 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       this.initAllWavesurfers()
 
       this.rendering.containers.forEach((container, index) => {
-        const drag = initDragging(container, (delta: number) => this.onDrag(index, delta), options.rightButtonDrag)
-        this.wavesurfers[index].once('destroy', () => drag?.destroy())
+        if (tracks[index]?.draggable) {
+          const drag = initDragging(container, (delta: number) => this.onDrag(index, delta), options.rightButtonDrag)
+          this.wavesurfers[index].once('destroy', () => drag?.destroy())
+        }
       })
 
       this.rendering.addClickHandler((position) => {
@@ -134,11 +145,18 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       return Math.max(max, track.startPosition + durations[index])
     }, 0)
 
+    const placeholderAudio = this.audios[this.audios.length - 1] as WebAudioPlayer
+    placeholderAudio.duration = this.maxDuration
+    this.durations[this.durations.length - 1] = this.maxDuration
+
     this.rendering.setMainWidth(durations, this.maxDuration)
   }
 
   private initAudio(track: TrackOptions): Promise<HTMLAudioElement | WebAudioPlayer> {
-    const audio = track.options?.media || (this.audioContext ? new WebAudioPlayer(this.audioContext) : new Audio())
+    const isIOS = /iPhone|iPad/.test(navigator.userAgent)
+    const isPlaceholderTrack = track.id === PLACEHOLDER_TRACK
+    const audio =
+      track.options?.media || (isIOS || isPlaceholderTrack ? new WebAudioPlayer(this.audioContext) : new Audio())
 
     audio.crossOrigin = 'anonymous'
 
@@ -174,6 +192,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
         (this.audios[index] instanceof WebAudioPlayer
           ? (this.audios[index] as WebAudioPlayer).getChannelData()
           : undefined),
+      duration: this.durations[index],
       cursorColor: 'transparent',
       cursorWidth: 0,
       interact: false,
@@ -400,12 +419,8 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     if (!track.draggable) return
 
     const newStartPosition = track.startPosition + delta * this.maxDuration
-    const mainIndex = this.tracks.findIndex((item) => item.url && !item.draggable)
-    const mainTrack = this.tracks[mainIndex]
-    const minStart = (mainTrack ? mainTrack.startPosition : 0) - this.durations[index]
-    const maxStart = mainTrack ? mainTrack.startPosition + this.durations[mainIndex] : this.maxDuration
-
-    if (this.options.dragBounds && newStartPosition < 0) return
+    const minStart = this.options.dragBounds ? 0 : -this.durations[index] - 1
+    const maxStart = this.maxDuration - this.durations[index]
 
     if (newStartPosition >= minStart && newStartPosition <= maxStart) {
       track.startPosition = newStartPosition
@@ -588,6 +603,10 @@ function initRendering(tracks: MultitrackTracks, options: MultitrackOptions) {
   const containers = tracks.map((track, index) => {
     const container = document.createElement('div')
     container.style.position = 'relative'
+
+    if (track.id === PLACEHOLDER_TRACK) {
+      container.style.display = 'none'
+    }
 
     if (options.trackBorderColor && index > 0) {
       const borderDiv = document.createElement('div')

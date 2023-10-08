@@ -86,7 +86,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   private frameRequest: number | null = null
   private subscriptions: Array<() => void> = []
   private timeline: TimelinePlugin | null = null
-  private audioContext: AudioContext | null = null
+  private audioContext: AudioContext
 
   static create(tracks: MultitrackTracks, options: MultitrackOptions): MultiTrack {
     return new MultiTrack(tracks, options)

@@ -70,6 +70,17 @@ const multitrack = Multitrack.create(
       },
       url: '/examples/audio/audio.wav',
     },
+    {
+      id: 3,
+      draggable: true,
+      startPosition: 290,
+      volume: 0.8,
+      options: {
+        waveColor: 'hsl(161, 87%, 49%)',
+        progressColor: 'hsl(161, 87%, 20%)',
+      },
+      url: '/examples/audio/demo.wav',
+    },
   ],
   {
     container: document.querySelector('#container'), // required!

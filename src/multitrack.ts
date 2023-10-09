@@ -71,7 +71,13 @@ export type MultitrackEvents = {
 
 export type MultitrackTracks = Array<TrackOptions>
 
-const PLACEHOLDER_TRACK = 'placeholder'
+const PLACEHOLDER_TRACK = {
+  id: 'placeholder',
+  url: 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU2LjM2LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV6urq6urq6urq6urq6urq6urq6urq6urq6v////////////////////////////////8AAAAATGF2YzU2LjQxAAAAAAAAAAAAAAAAJAAAAAAAAAAAASDs90hvAAAAAAAAAAAAAAAAAAAA//MUZAAAAAGkAAAAAAAAA0gAAAAATEFN//MUZAMAAAGkAAAAAAAAA0gAAAAARTMu//MUZAYAAAGkAAAAAAAAA0gAAAAAOTku//MUZAkAAAGkAAAAAAAAA0gAAAAANVVV',
+  peaks: [[0]],
+  startPosition: 0,
+  options: { height: 0 },
+}
 
 class MultiTrack extends EventEmitter<MultitrackEvents> {
   private tracks: MultitrackTracks
@@ -97,15 +103,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
 
     this.audioContext = new AudioContext()
 
-    const longPlaceholderTrack = {
-      id: PLACEHOLDER_TRACK,
-      url: 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA',
-      peaks: [[0]],
-      startPosition: 0,
-      options: { height: 0 },
-    }
-
-    this.tracks = tracks.concat(longPlaceholderTrack).map((track) => ({
+    this.tracks = tracks.concat({ ...PLACEHOLDER_TRACK }).map((track) => ({
       ...track,
       startPosition: track.startPosition || 0,
       peaks: track.peaks || (track.url || track.options?.media ? undefined : [new Float32Array()]),
@@ -154,7 +152,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
 
   private initAudio(track: TrackOptions): Promise<HTMLAudioElement | WebAudioPlayer> {
     const isIOS = /iPhone|iPad/.test(navigator.userAgent)
-    const isPlaceholderTrack = track.id === PLACEHOLDER_TRACK
+    const isPlaceholderTrack = track.id === PLACEHOLDER_TRACK.id
     const audio =
       track.options?.media || (isIOS || isPlaceholderTrack ? new WebAudioPlayer(this.audioContext) : new Audio())
 
@@ -604,7 +602,7 @@ function initRendering(tracks: MultitrackTracks, options: MultitrackOptions) {
     const container = document.createElement('div')
     container.style.position = 'relative'
 
-    if (track.id === PLACEHOLDER_TRACK) {
+    if (track.id === PLACEHOLDER_TRACK.id) {
       container.style.display = 'none'
     }
 

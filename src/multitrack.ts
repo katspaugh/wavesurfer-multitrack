@@ -16,7 +16,7 @@ export type TrackId = string | number
 
 type SingleTrackOptions = Omit<
   WaveSurferOptions,
-  'container' | 'minPxPerSec' | 'peaks' | 'cursorColor' | 'cursorWidth' | 'interact' | 'hideScrollbar'
+  'container' | 'minPxPerSec' | 'duration' | 'cursorColor' | 'cursorWidth' | 'interact' | 'hideScrollbar'
 >
 
 export type TrackOptions = {
@@ -395,7 +395,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       const newTime = time - track.startPosition
 
       if (Math.abs(audio.currentTime - newTime) > precisionSeconds) {
-        audio.currentTime = newTime
+        audio.currentTime = Math.max(0, newTime)
       }
 
       // If the position is out of the track bounds, pause it

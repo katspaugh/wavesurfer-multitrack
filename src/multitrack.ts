@@ -10,6 +10,7 @@ import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js'
 import TimelinePlugin, { type TimelinePluginOptions } from 'wavesurfer.js/dist/plugins/timeline.js'
 import EnvelopePlugin, { type EnvelopePoint, type EnvelopePluginOptions } from 'wavesurfer.js/dist/plugins/envelope.js'
 import EventEmitter from 'wavesurfer.js/dist/event-emitter.js'
+import { makeDraggable } from './draggable.js'
 import WebAudioPlayer from './webaudio.js'
 
 export type TrackId = string | number
@@ -123,8 +124,12 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
 
       this.rendering.containers.forEach((container, index) => {
         if (tracks[index]?.draggable) {
-          const drag = initDragging(container, (delta: number) => this.onDrag(index, delta), options.rightButtonDrag)
-          this.wavesurfers[index].once('destroy', () => drag?.destroy())
+          const unsubscribe = initDragging(
+            container,
+            (delta: number) => this.onDrag(index, delta),
+            options.rightButtonDrag,
+          )
+          this.wavesurfers[index].once('destroy', unsubscribe)
         }
       })
 
@@ -533,8 +538,12 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
         this.wavesurfers[index].destroy()
         this.wavesurfers[index] = this.initWavesurfer(track, index)
 
-        const drag = initDragging(container, (delta: number) => this.onDrag(index, delta), this.options.rightButtonDrag)
-        this.wavesurfers[index].once('destroy', () => drag?.destroy())
+        const unsubscribe = initDragging(
+          container,
+          (delta: number) => this.onDrag(index, delta),
+          this.options.rightButtonDrag,
+        )
+        this.wavesurfers[index].once('destroy', unsubscribe)
 
         this.initTimeline()
 
@@ -715,69 +724,37 @@ function initRendering(tracks: MultitrackTracks, options: MultitrackOptions) {
 }
 
 function initDragging(container: HTMLElement, onDrag: (delta: number) => void, rightButtonDrag = false) {
-  const wrapper = container.parentElement
-  if (!wrapper) return
+  let overallWidth = 0
 
-  // Dragging tracks to set position
-  let dragStart: number | null = null
-  let isDragging = false
-
-  container.addEventListener('contextmenu', (e) => {
-    rightButtonDrag && e.preventDefault()
-  })
-
-  // Drag start
-  container.addEventListener('pointerdown', (e) => {
-    if (rightButtonDrag && e.button !== 2) return
-    const rect = wrapper.getBoundingClientRect()
-    dragStart = e.clientX - rect.left
-    container.style.cursor = 'grabbing'
-  })
-
-  // Drag end
-  const onMouseUp = (e: MouseEvent) => {
-    if (dragStart != null) {
-      e.stopPropagation()
-      dragStart = null
-      container.style.cursor = ''
-
-      setTimeout(() => (isDragging = false), 100)
-    }
-  }
-
-  // Drag move
-  const onMouseMove = (e: MouseEvent) => {
-    if (dragStart == null) return
-    const rect = wrapper.getBoundingClientRect()
-    const x = e.clientX - rect.left
-    const diff = x - dragStart
-    if (diff > 1 || diff < -1) {
-      isDragging = true
-      dragStart = x
-      onDrag(diff / wrapper.offsetWidth)
-    }
-  }
-
-  const onClick = (e: MouseEvent) => {
-    if (isDragging) {
-      e.preventDefault()
-      e.stopPropagation()
-      e.stopImmediatePropagation()
-    }
-  }
-
-  document.addEventListener('pointerup', onMouseUp)
-  document.addEventListener('pointerleave', onMouseUp)
-  document.addEventListener('pointermove', onMouseMove)
-  wrapper.addEventListener('click', onClick)
-
-  return {
-    destroy: () => {
-      document.removeEventListener('pointerup', onMouseUp)
-      document.removeEventListener('pointerleave', onMouseUp)
-      document.removeEventListener('pointermove', onMouseMove)
-      wrapper.removeEventListener('click', onClick)
+  const unsubscribe = makeDraggable(
+    container,
+    (dx: number) => {
+      onDrag(dx / overallWidth)
     },
+    () => {
+      container.style.cursor = 'grabbing'
+      overallWidth = container.parentElement?.offsetWidth ?? 0
+    },
+    () => {
+      container.style.cursor = 'grab'
+    },
+    rightButtonDrag ? 2 : 0,
+  )
+
+  const preventDefault = (e: Event) => e.preventDefault()
+
+  container.style.cursor = 'grab'
+
+  if (rightButtonDrag) {
+    container.addEventListener('contextmenu', preventDefault)
+  }
+
+  return () => {
+    container.style.cursor = ''
+    unsubscribe()
+    if (rightButtonDrag) {
+      container.removeEventListener('contextmenu', preventDefault)
+    }
   }
 }
 

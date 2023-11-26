@@ -10,7 +10,7 @@ import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js'
 import TimelinePlugin, { type TimelinePluginOptions } from 'wavesurfer.js/dist/plugins/timeline.js'
 import EnvelopePlugin, { type EnvelopePoint, type EnvelopePluginOptions } from 'wavesurfer.js/dist/plugins/envelope.js'
 import EventEmitter from 'wavesurfer.js/dist/event-emitter.js'
-import { makeDraggable } from './draggable.js'
+import { makeDraggable } from 'wavesurfer.js/dist/draggable.js'
 import WebAudioPlayer from './webaudio.js'
 
 export type TrackId = string | number
@@ -738,6 +738,7 @@ function initDragging(container: HTMLElement, onDrag: (delta: number) => void, r
     () => {
       container.style.cursor = 'grab'
     },
+    5,
     rightButtonDrag ? 2 : 0,
   )
 

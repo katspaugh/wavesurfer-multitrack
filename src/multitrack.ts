@@ -600,7 +600,7 @@ function initRendering(tracks: MultitrackTracks, options: MultitrackOptions) {
 
   // Create a common cursor
   const cursor = document.createElement('div')
-  cursor.setAttribute('style', 'height: 100%; position: absolute; z-index: 10; top: 0; left: 0')
+  cursor.setAttribute('style', 'height: 100%; position: absolute; z-index: 10; top: 0; left: 0; pointer-events: none;')
   cursor.style.backgroundColor = options.cursorColor || '#000'
   cursor.style.width = `${options.cursorWidth ?? 1}px`
   wrapper.appendChild(cursor)

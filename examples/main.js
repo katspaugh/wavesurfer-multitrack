@@ -98,6 +98,9 @@ const multitrack = Multitrack.create(
       dragPointFill: 'rgba(255, 255, 255, 0.8)',
       dragPointStroke: 'rgba(255, 255, 255, 0.3)',
     },
+    timelineOptions: {
+      height: 30,
+    },
   },
 )
 

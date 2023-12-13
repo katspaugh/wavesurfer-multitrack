@@ -55,6 +55,7 @@ export type MultitrackOptions = {
   rightButtonDrag?: boolean
   dragBounds?: boolean
   envelopeOptions?: EnvelopePluginOptions
+  timelineOptions?: TimelinePluginOptions
 }
 
 export type MultitrackEvents = {
@@ -92,7 +93,6 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
   private rendering: ReturnType<typeof initRendering>
   private frameRequest: number | null = null
   private subscriptions: Array<() => void> = []
-  private timeline: TimelinePlugin | null = null
   private audioContext: AudioContext
 
   static create(tracks: MultitrackTracks, options: MultitrackOptions): MultiTrack {
@@ -201,6 +201,15 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       interact: false,
       hideScrollbar: true,
     })
+
+    if (track.id === PLACEHOLDER_TRACK.id) {
+      ws.registerPlugin(
+        TimelinePlugin.create({
+          container: this.rendering.containers[0].parentElement,
+          ...this.options.timelineOptions,
+        } as TimelinePluginOptions),
+      )
+    }
 
     // Regions and markers
     const wsRegions = RegionsPlugin.create()
@@ -370,18 +379,6 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     })
 
     this.wavesurfers = wavesurfers
-    this.initTimeline()
-  }
-
-  private initTimeline() {
-    if (this.timeline) this.timeline.destroy()
-
-    this.timeline = this.wavesurfers[0].registerPlugin(
-      TimelinePlugin.create({
-        duration: this.maxDuration,
-        container: this.rendering.containers[0].parentElement,
-      } as TimelinePluginOptions),
-    )
   }
 
   private updatePosition(time: number, autoCenter = false) {
@@ -519,7 +516,6 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     this.wavesurfers.forEach((ws, index) => this.tracks[index].url && ws.zoom(pxPerSec))
     this.rendering.setMainWidth(this.durations, this.maxDuration)
     this.rendering.setContainerOffsets()
-    this.initTimeline()
   }
 
   public addTrack(track: TrackOptions) {
@@ -544,8 +540,6 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
           this.options.rightButtonDrag,
         )
         this.wavesurfers[index].once('destroy', unsubscribe)
-
-        this.initTimeline()
 
         this.emit('canplay')
       })

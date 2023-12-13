@@ -1240,10 +1240,10 @@ vscode-textmate@^8.0.0:
   resolved "https://registry.yarnpkg.com/vscode-textmate/-/vscode-textmate-8.0.0.tgz#2c7a3b1163ef0441097e0b5d6389cd5504b59e5d"
   integrity sha512-AFbieoL7a5LMqcnOF04ji+rpXadgOXnZsxQr//r83kLPr7biP7am3g9zbaZIaBGwBRWeSvoMD4mgPdX3e4NWBg==
 
-wavesurfer.js@^7.4.13:
-  version "7.4.13"
-  resolved "https://registry.yarnpkg.com/wavesurfer.js/-/wavesurfer.js-7.4.13.tgz#1f9a7335a0d7a55a0fc75f3a1ece11e7e812e33b"
-  integrity sha512-VdUB7Z/w70GR2WePOh40ra7ORjktClN73ydYMuaMpgAgtOPuQOECs91PjVzWwKrw3ncjssPe+eNmPNKcTsJhnA==
+wavesurfer.js@^7.5.2:
+  version "7.5.2"
+  resolved "https://registry.yarnpkg.com/wavesurfer.js/-/wavesurfer.js-7.5.2.tgz#8f03124531ba1e6b022df85a0cc358747aa8317d"
+  integrity sha512-hgO8p0MXxJ6oLm367jsjujve6QNEqt1B+T7muvXtMWWDn08efZ2DrVw6xaUI9NiX3Lo7BNYu9lPKnE5jubjoOg==
 
 which@^2.0.1:
   version "2.0.2"

@@ -148,7 +148,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       return Math.max(max, track.startPosition + durations[index])
     }, 0)
 
-    const placeholderAudio = this.audios[this.audios.length - 1] as WebAudioPlayer
+    const placeholderAudio = this.audios[this.audios.length - 1] as HTMLAudioElement & { duration: number }
     placeholderAudio.duration = this.maxDuration
     this.durations[this.durations.length - 1] = this.maxDuration
 
@@ -171,8 +171,7 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
 
     return new Promise<typeof audio>((resolve) => {
       if (!audio.src) return resolve(audio)
-
-      audio.addEventListener('loadedmetadata', () => resolve(audio), { once: true })
+      ;(audio as HTMLAudioElement).addEventListener('loadedmetadata', () => resolve(audio), { once: true })
     })
   }
 

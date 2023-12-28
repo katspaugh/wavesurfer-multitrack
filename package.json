@@ -51,6 +51,6 @@
     "typescript": "^5.0.4"
   },
   "dependencies": {
-    "wavesurfer.js": "^7.5.2"
+    "wavesurfer.js": "^7.6.0"
   }
 }

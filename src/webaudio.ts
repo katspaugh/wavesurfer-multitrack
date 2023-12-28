@@ -1,82 +1,82 @@
+import EventEmitter from 'wavesurfer.js/dist/event-emitter.js'
+
+type WebAudioPlayerEvents = {
+  loadedmetadata: []
+  canplay: []
+  play: []
+  pause: []
+  seeking: []
+  timeupdate: []
+  volumechange: []
+  emptied: []
+  ended: []
+}
+
 /**
- * Web Audio buffer player emulating the behavior of an HTML5 Audio element.
+ * A Web Audio buffer player emulating the behavior of an HTML5 Audio element.
  */
-class WebAudioPlayer {
+class WebAudioPlayer extends EventEmitter<WebAudioPlayerEvents> {
   private audioContext: AudioContext
   private gainNode: GainNode
   private bufferNode: AudioBufferSourceNode | null = null
-  private listeners: Map<string, Set<() => void>> = new Map()
   private autoplay = false
   private playStartTime = 0
   private playedDuration = 0
-  private _src = ''
-  private _duration = 0
   private _muted = false
   private buffer: AudioBuffer | null = null
+  public currentSrc = ''
   public paused = true
   public crossOrigin: string | null = null
 
   constructor(audioContext = new AudioContext()) {
+    super()
     this.audioContext = audioContext
-
     this.gainNode = this.audioContext.createGain()
     this.gainNode.connect(this.audioContext.destination)
   }
 
-  addEventListener(event: string, listener: () => void, options?: { once?: boolean }) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set())
-    }
-    this.listeners.get(event)?.add(listener)
+  /** Subscribe to an event. Returns an unsubscribe function. */
+  addEventListener = this.on
 
-    if (options?.once) {
-      const onOnce = () => {
-        this.removeEventListener(event, onOnce)
-        this.removeEventListener(event, listener)
-      }
-      this.addEventListener(event, onOnce)
-    }
-  }
+  /** Unsubscribe from an event */
+  removeEventListener = this.un
 
-  removeEventListener(event: string, listener: () => void) {
-    if (this.listeners.has(event)) {
-      this.listeners.get(event)?.delete(listener)
-    }
-  }
-
-  private emitEvent(event: string) {
-    this.listeners.get(event)?.forEach((listener) => listener())
+  async load() {
+    return
   }
 
   get src() {
-    return this._src
+    return this.currentSrc
   }
 
   set src(value: string) {
-    this._src = value
+    this.currentSrc = value
+
+    if (!value) {
+      this.buffer = null
+      this.emit('emptied')
+      return
+    }
 
     fetch(value)
       .then((response) => response.arrayBuffer())
-      .then((arrayBuffer) => this.audioContext.decodeAudioData(arrayBuffer))
+      .then((arrayBuffer) => {
+        if (this.currentSrc !== value) return null
+        return this.audioContext.decodeAudioData(arrayBuffer)
+      })
       .then((audioBuffer) => {
+        if (this.currentSrc !== value) return
+
         this.buffer = audioBuffer
-        this._duration = audioBuffer.duration
 
-        this.emitEvent('loadedmetadata')
-        this.emitEvent('canplay')
+        this.emit('loadedmetadata')
+        this.emit('canplay')
 
-        if (this.autoplay) {
-          this.play()
-        }
+        if (this.autoplay) this.play()
       })
   }
 
-  getChannelData() {
-    const channelData = this.buffer?.getChannelData(0)
-    return channelData ? [channelData] : undefined
-  }
-
-  async play() {
+  private _play() {
     if (!this.paused) return
     this.paused = false
 
@@ -85,22 +85,50 @@ class WebAudioPlayer {
     this.bufferNode.buffer = this.buffer
     this.bufferNode.connect(this.gainNode)
 
-    const offset = this.playedDuration > 0 ? this.playedDuration : 0
-    const start =
-      this.playedDuration > 0 ? this.audioContext.currentTime : this.audioContext.currentTime - this.playedDuration
+    if (this.playedDuration >= this.duration) {
+      this.playedDuration = 0
+    }
 
-    this.bufferNode.start(start, offset)
+    this.bufferNode.start(this.audioContext.currentTime, this.playedDuration)
     this.playStartTime = this.audioContext.currentTime
-    this.emitEvent('play')
+
+    this.bufferNode.onended = () => {
+      if (this.currentTime >= this.duration) {
+        this.pause()
+        this.emit('ended')
+      }
+    }
+  }
+
+  private _pause() {
+    if (this.paused) return
+    this.paused = true
+    this.bufferNode?.stop()
+    this.playedDuration += this.audioContext.currentTime - this.playStartTime
+  }
+
+  async play() {
+    this._play()
+    this.emit('play')
   }
 
   pause() {
-    if (this.paused) return
-    this.paused = true
+    this._pause()
+    this.emit('pause')
+  }
 
-    this.bufferNode?.stop()
-    this.playedDuration += this.audioContext.currentTime - this.playStartTime
-    this.emitEvent('pause')
+  stopAt(timeSeconds: number) {
+    const delay = timeSeconds - this.currentTime
+    this.bufferNode?.stop(this.audioContext.currentTime + delay)
+
+    this.bufferNode?.addEventListener(
+      'ended',
+      () => {
+        this.bufferNode = null
+        this.pause()
+      },
+      { once: true },
+    )
   }
 
   async setSinkId(deviceId: string) {
@@ -121,24 +149,21 @@ class WebAudioPlayer {
     return this.paused ? this.playedDuration : this.playedDuration + this.audioContext.currentTime - this.playStartTime
   }
   set currentTime(value) {
-    this.emitEvent('seeking')
+    this.emit('seeking')
 
     if (this.paused) {
       this.playedDuration = value
     } else {
-      this.pause()
+      this._pause()
       this.playedDuration = value
-      this.play()
+      this._play()
     }
 
-    this.emitEvent('timeupdate')
+    this.emit('timeupdate')
   }
 
   get duration() {
-    return this._duration
-  }
-  set duration(value: number) {
-    this._duration = value
+    return this.buffer?.duration || 0
   }
 
   get volume() {
@@ -146,7 +171,7 @@ class WebAudioPlayer {
   }
   set volume(value) {
     this.gainNode.gain.value = value
-    this.emitEvent('volumechange')
+    this.emit('volumechange')
   }
 
   get muted() {
@@ -161,6 +186,22 @@ class WebAudioPlayer {
     } else {
       this.gainNode.connect(this.audioContext.destination)
     }
+  }
+
+  /** Get the GainNode used to play the audio. Can be used to attach filters. */
+  public getGainNode(): GainNode {
+    return this.gainNode
+  }
+
+  /** Get decoded audio */
+  public getChannelData(): Float32Array[] {
+    const channels: Float32Array[] = []
+    if (!this.buffer) return channels
+    const numChannels = this.buffer.numberOfChannels
+    for (let i = 0; i < numChannels; i++) {
+      channels.push(this.buffer.getChannelData(i))
+    }
+    return channels
   }
 }
 

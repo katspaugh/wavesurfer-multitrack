@@ -148,9 +148,12 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
       return Math.max(max, track.startPosition + durations[index])
     }, 0)
 
-    const placeholderAudio = this.audios[this.audios.length - 1] as HTMLAudioElement & { duration: number }
-    placeholderAudio.duration = this.maxDuration
-    this.durations[this.durations.length - 1] = this.maxDuration
+    const placeholderAudioIndex = this.audios.findIndex((a) => a.src === PLACEHOLDER_TRACK.url)
+    const placeholderAudio = this.audios[placeholderAudioIndex]
+    if (placeholderAudio) {
+      ;(placeholderAudio as WebAudioPlayer & { duration: number }).duration = this.maxDuration
+      this.durations[placeholderAudioIndex] = this.maxDuration
+    }
 
     this.rendering.setMainWidth(durations, this.maxDuration)
   }
@@ -259,11 +262,13 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
             color: this.options.trackBackground,
             drag: false,
           })
-          introRegion.element.querySelector('[data-resize="left"]')?.remove()
+          introRegion.element.querySelector('[part*="region-handle-left"]')?.remove()
           ;(introRegion.element.parentElement as HTMLElement).style.mixBlendMode = 'plus-lighter'
           if (track.intro.color) {
-            ;(introRegion.element.querySelector('[data-resize="right"]') as HTMLElement).style.borderColor =
-              track.intro.color
+            const rightHandle = introRegion.element.querySelector('[part*="region-handle-right"]') as HTMLElement
+            if (rightHandle) {
+              rightHandle.style.borderColor = track.intro.color
+            }
           }
 
           this.subscriptions.push(

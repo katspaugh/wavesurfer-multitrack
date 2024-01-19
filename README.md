@@ -5,6 +5,8 @@ wavesurfer-multitrack
 
 A multi-track super-plugin for [wavesurfer.js](https://github.com/katspaugh/wavesurfer.js)
 
+Docs: https://wavesurfer-multitrack.pages.dev/docs/classes/default
+
 Live demo: https://wavesurfer.xyz/examples/?multitrack.js
 
 The latest version on a CDN: https://unpkg.com/wavesurfer-multitrack/dist/multitrack.min.js

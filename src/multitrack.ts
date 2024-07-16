@@ -574,6 +574,23 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     ;(this.envelopes[index] || this.wavesurfers[index])?.setVolume(volume)
   }
 
+  public setTrackStartPosition(index: number, value: number) {
+    const track = this.tracks[index]
+    if (!track.draggable) return
+
+    const newStartPosition = value
+    const minStart = this.options.dragBounds ? 0 : -this.durations[index] - 1
+    const maxStart = this.maxDuration - this.durations[index]
+
+    if (newStartPosition >= minStart && newStartPosition <= maxStart) {
+      track.startPosition = newStartPosition
+      this.initDurations(this.durations)
+      this.rendering.setContainerOffsets()
+      this.updatePosition(this.currentTime)
+      this.emit('start-position-change', { id: track.id, startPosition: newStartPosition })
+    }
+  }
+
   public getEnvelopePoints(trackIndex: number): EnvelopePoint[] | undefined {
     return this.envelopes[trackIndex]?.getPoints()
   }

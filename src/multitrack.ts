@@ -493,6 +493,16 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     this.audios.forEach((audio) => audio.pause())
   }
 
+  public getAudioRate(): number {
+    return (this.audios.length > 0) ? this.audios[0].playbackRate : 1
+  }
+
+  public setAudioRate(rate: number) {
+    this.audios.forEach((audio) => {
+      audio.playbackRate = rate
+    })
+  }
+
   public isPlaying() {
     return this.audios.some((audio) => !audio.paused)
   }

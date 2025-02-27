@@ -493,11 +493,23 @@ class MultiTrack extends EventEmitter<MultitrackEvents> {
     this.audios.forEach((audio) => audio.pause())
   }
 
+  /**
+   * Gets the current playback rate of the audio tracks.
+   * @returns The playback rate of the first audio track, or 1 if no tracks exist.
+   */
   public getAudioRate(): number {
-    return (this.audios.length > 0) ? this.audios[0].playbackRate : 1
+    return this.audios.length > 0 ? this.audios[0].playbackRate : 1
   }
 
+  /**
+   * Sets the playback rate for all audio tracks to maintain synchronization.
+   * @param rate The playback rate (between 0.25 and 5.0).
+   * @throws {Error} If the rate is outside the valid range.
+   */
   public setAudioRate(rate: number) {
+    if (rate < 0.25 || rate > 5.0) {
+      throw new Error('Playback rate must be between 0.25 and 5.0')
+    }
     this.audios.forEach((audio) => {
       audio.playbackRate = rate
     })
